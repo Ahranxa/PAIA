@@ -122,10 +122,12 @@ async function cargarEstadisticas() {
         const response = await fetch(`${API_URL}/inventario/estadisticas`);
         const stats = await response.json();
         
-        document.getElementById('stat-total').textContent = stats.totalProductos;
-        document.getElementById('stat-valor').textContent = `$${formatoMoneda(stats.valorTotalInventario)}`;
-        document.getElementById('stat-bajo-stock').textContent = stats.productosBajoStock;
-        document.getElementById('stat-venta').textContent = `$${formatoMoneda(stats.valorVentaPotencial)}`;
+        console.log('Estadísticas recibidas:', stats);
+        
+        document.getElementById('stat-total').textContent = stats.totalProductos || 0;
+        document.getElementById('stat-valor').textContent = `$${formatoMoneda(stats.valorTotalInventario || 0)}`;
+        document.getElementById('stat-bajo-stock').textContent = stats.productosBajoStock || 0;
+        document.getElementById('stat-venta').textContent = `$${formatoMoneda(stats.valorVentaPotencial || 0)}`;
     } catch (error) {
         console.error('Error al cargar estadísticas:', error);
     }
