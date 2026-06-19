@@ -1,6 +1,16 @@
 -- Esquema de base de datos para Sistema de Inventario
 -- Ejecutar este script en el SQL Editor de Supabase
 
+-- Crear tabla de categorías
+CREATE TABLE categorias (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL UNIQUE,
+  descripcion TEXT,
+  activo BOOLEAN DEFAULT TRUE,
+  fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  fecha_actualizacion TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Crear tabla de productos
 CREATE TABLE productos (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -34,15 +44,18 @@ CREATE INDEX idx_productos_categoria ON productos(categoria);
 CREATE INDEX idx_productos_sku ON productos(sku);
 CREATE INDEX idx_movimientos_producto ON movimientos(producto_id);
 CREATE INDEX idx_movimientos_fecha ON movimientos(fecha);
+CREATE INDEX idx_categorias_nombre ON categorias(nombre);
 
 -- Habilitar Row Level Security (RLS)
 ALTER TABLE productos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE movimientos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categorias ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de seguridad (permitir todo para desarrollo)
 -- En producción, restringir según necesidades
 CREATE POLICY "Permitir todo en productos" ON productos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Permitir todo en movimientos" ON movimientos FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Permitir todo en categorias" ON categorias FOR ALL USING (true) WITH CHECK (true);
 
 -- Función para actualizar fecha_actualización
 CREATE OR REPLACE FUNCTION actualizar_fecha_actualizacion()
@@ -59,7 +72,20 @@ BEFORE UPDATE ON productos
 FOR EACH ROW
 EXECUTE FUNCTION actualizar_fecha_actualizacion();
 
+CREATE TRIGGER trigger_actualizar_categorias
+BEFORE UPDATE ON categorias
+FOR EACH ROW
+EXECUTE FUNCTION actualizar_fecha_actualizacion();
+
 -- Datos de ejemplo (opcional)
+INSERT INTO categorias (nombre, descripcion) VALUES
+('Electrónicos', 'Dispositivos electrónicos y gadgets'),
+('Accesorios', 'Accesorios para computadoras y periféricos'),
+('Cables', 'Cables y conectores varios'),
+('Periféricos', 'Periféricos de entrada y salida'),
+('Almacenamiento', 'Dispositivos de almacenamiento de datos'),
+('Otros', 'Categorías misceláneas');
+
 INSERT INTO productos (nombre, descripcion, categoria, stock, stock_minimo, precio_compra, precio_venta, proveedor, sku) VALUES
 ('Laptop HP Pavilion', 'Laptop 15.6" Intel i5, 8GB RAM, 256GB SSD', 'Electrónicos', 10, 5, 8500.00, 12000.00, 'HP México', 'LAP-HP-001'),
 ('Mouse Inalámbrico Logitech', 'Mouse ergonómico inalámbrico', 'Accesorios', 25, 10, 350.00, 550.00, 'Logitech', 'MOU-LOG-001'),

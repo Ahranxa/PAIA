@@ -341,6 +341,91 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// ============ ENDPOINTS DE CATEGORÍAS ============
+
+// Obtener todas las categorías
+app.get('/api/categorias', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('categorias')
+      .select('*')
+      .eq('activo', true)
+      .order('nombre');
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obtener una categoría por ID
+app.get('/api/categorias/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('categorias')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Crear nueva categoría
+app.post('/api/categorias', async (req, res) => {
+  try {
+    const { nombre, descripcion } = req.body;
+    
+    const { data, error } = await supabase
+      .from('categorias')
+      .insert([{
+        nombre,
+        descripcion
+      }])
+      .select();
+    
+    if (error) throw error;
+    res.status(201).json(data[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Actualizar categoría
+app.put('/api/categorias/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('categorias')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .select();
+    
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Eliminar categoría (soft delete)
+app.delete('/api/categorias/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('categorias')
+      .update({ activo: false })
+      .eq('id', req.params.id);
+    
+    if (error) throw error;
+    res.json({ message: 'Categoría eliminada correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Servir frontend para SPA (todas las rutas no-API van a index.html)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));

@@ -141,6 +141,10 @@
                         class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium">
                     ➕ Nuevo Producto
                 </button>
+                <button onclick="abrirModalCategorias()" 
+                        class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium">
+                    📁 Gestionar Categorías
+                </button>
             </div>
         </div>
 
@@ -210,12 +214,6 @@
                         <select id="categoria" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                             <option value="">Seleccionar...</option>
-                            <option value="Electrónicos">Electrónicos</option>
-                            <option value="Accesorios">Accesorios</option>
-                            <option value="Cables">Cables</option>
-                            <option value="Periféricos">Periféricos</option>
-                            <option value="Almacenamiento">Almacenamiento</option>
-                            <option value="Otros">Otros</option>
                         </select>
                     </div>
                     <div>
@@ -318,6 +316,37 @@
             <div class="p-6">
                 <p id="historial-nombre-producto" class="font-medium text-gray-800 mb-4"></p>
                 <div id="historial-lista" class="space-y-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Categorías -->
+    <div id="modal-categorias" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-800">Gestionar Categorías</h3>
+                <button onclick="cerrarModalCategorias()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <!-- Formulario agregar categoría -->
+                <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                    <h4 class="font-medium text-gray-800 mb-3">Nueva Categoría</h4>
+                    <div class="flex gap-3">
+                        <input type="text" id="nueva-categoria-nombre" placeholder="Nombre de la categoría" 
+                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <input type="text" id="nueva-categoria-descripcion" placeholder="Descripción (opcional)" 
+                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <button onclick="agregarCategoria()" 
+                                class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">
+                            Agregar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de categorías -->
+                <div id="categorias-lista" class="space-y-2">
+                    <p class="text-gray-500 text-center">Cargando categorías...</p>
+                </div>
             </div>
         </div>
     </div>

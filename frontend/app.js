@@ -1,5 +1,6 @@
 // Variables globales
 let productos = [];
+let categorias = [];
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cargarInventario();
         cargarEstadisticas();
         cargarAlertas();
+        cargarCategorias();
     }
 
     // Event listeners
@@ -177,6 +179,7 @@ function abrirModalAgregar() {
     document.getElementById('modal-titulo').textContent = 'Agregar Producto';
     document.getElementById('form-producto').reset();
     document.getElementById('producto-id').value = '';
+    actualizarSelectCategorias();
     document.getElementById('modal-producto').classList.remove('hidden');
     document.getElementById('modal-producto').classList.add('flex');
 }
@@ -186,6 +189,8 @@ async function abrirModalEditar(id) {
     try {
         const response = await fetch(`${API_URL}/inventario/${id}`);
         const producto = await response.json();
+        
+        actualizarSelectCategorias();
         
         document.getElementById('modal-titulo').textContent = 'Editar Producto';
         document.getElementById('producto-id').value = producto.id;
@@ -496,4 +501,158 @@ function cerrarSesion() {
     // Limpiar campos de login
     document.getElementById('login-email').value = '';
     document.getElementById('login-password').value = '';
+}
+
+// ============ FUNCIONES DE CATEGORÍAS ============
+
+// Cargar categorías
+async function cargarCategorias() {
+    try {
+        const response = await fetch(`${API_URL}/categorias`);
+        categorias = await response.json();
+        actualizarSelectCategorias();
+    } catch (error) {
+        console.error('Error al cargar categorías:', error);
+    }
+}
+
+// Actualizar select de categorías en formulario de productos
+function actualizarSelectCategorias() {
+    const select = document.getElementById('categoria');
+    const valorActual = select.value;
+    
+    select.innerHTML = '<option value="">Seleccionar...</option>';
+    
+    categorias.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.nombre;
+        option.textContent = cat.nombre;
+        select.appendChild(option);
+    });
+    
+    // Mantener el valor seleccionado si existe
+    if (valorActual) {
+        select.value = valorActual;
+    }
+}
+
+// Abrir modal de categorías
+function abrirModalCategorias() {
+    document.getElementById('modal-categorias').classList.remove('hidden');
+    document.getElementById('modal-categorias').classList.add('flex');
+    renderizarCategorias();
+}
+
+// Cerrar modal de categorías
+function cerrarModalCategorias() {
+    document.getElementById('modal-categorias').classList.add('hidden');
+    document.getElementById('modal-categorias').classList.remove('flex');
+    document.getElementById('nueva-categoria-nombre').value = '';
+    document.getElementById('nueva-categoria-descripcion').value = '';
+}
+
+// Renderizar lista de categorías
+function renderizarCategorias() {
+    const lista = document.getElementById('categorias-lista');
+    
+    if (categorias.length === 0) {
+        lista.innerHTML = '<p class="text-gray-500 text-center">No hay categorías registradas</p>';
+        return;
+    }
+    
+    lista.innerHTML = categorias.map(cat => `
+        <div class="flex justify-between items-center bg-white p-4 rounded-lg border border-gray-200">
+            <div>
+                <span class="font-medium text-gray-800">${cat.nombre}</span>
+                ${cat.descripcion ? `<span class="text-gray-500 ml-2 text-sm">${cat.descripcion}</span>` : ''}
+            </div>
+            <div class="flex gap-2">
+                <button onclick="editarCategoria('${cat.id}', '${cat.nombre}', '${cat.descripcion || ''}')" 
+                        class="text-yellow-600 hover:text-yellow-800 text-lg" title="Editar">✏️</button>
+                <button onclick="eliminarCategoria('${cat.id}')" 
+                        class="text-red-600 hover:text-red-800 text-lg" title="Eliminar">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Agregar nueva categoría
+async function agregarCategoria() {
+    const nombre = document.getElementById('nueva-categoria-nombre').value.trim();
+    const descripcion = document.getElementById('nueva-categoria-descripcion').value.trim();
+    
+    if (!nombre) {
+        alert('El nombre de la categoría es obligatorio');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/categorias`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, descripcion })
+        });
+        
+        if (response.ok) {
+            await cargarCategorias();
+            renderizarCategorias();
+            document.getElementById('nueva-categoria-nombre').value = '';
+            document.getElementById('nueva-categoria-descripcion').value = '';
+            alert('Categoría agregada correctamente');
+        } else {
+            throw new Error('Error al agregar categoría');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al agregar la categoría');
+    }
+}
+
+// Editar categoría
+async function editarCategoria(id, nombreActual, descripcionActual) {
+    const nuevoNombre = prompt('Nuevo nombre de la categoría:', nombreActual);
+    if (!nuevoNombre) return;
+    
+    const nuevaDescripcion = prompt('Nueva descripción:', descripcionActual);
+    
+    try {
+        const response = await fetch(`${API_URL}/categorias/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre: nuevoNombre, descripcion: nuevaDescripcion })
+        });
+        
+        if (response.ok) {
+            await cargarCategorias();
+            renderizarCategorias();
+            alert('Categoría actualizada correctamente');
+        } else {
+            throw new Error('Error al actualizar categoría');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar la categoría');
+    }
+}
+
+// Eliminar categoría
+async function eliminarCategoria(id) {
+    if (!confirm('¿Está seguro de eliminar esta categoría?')) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/categorias/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            await cargarCategorias();
+            renderizarCategorias();
+            alert('Categoría eliminada correctamente');
+        } else {
+            throw new Error('Error al eliminar categoría');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al eliminar la categoría');
+    }
 }
