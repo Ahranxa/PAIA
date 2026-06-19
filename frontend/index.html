@@ -6,9 +6,16 @@
     <title>Sistema de Inventario - Tienda</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body {
             font-family: 'Inter', sans-serif;
+        }
+        #mapa-movimiento {
+            height: 400px;
+            width: 100%;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -144,6 +151,10 @@
                 <button onclick="abrirModalCategorias()" 
                         class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium">
                     📁 Gestionar Categorías
+                </button>
+                <button onclick="abrirModalUsuarios()" 
+                        class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-medium">
+                    👥 Gestionar Usuarios
                 </button>
             </div>
         </div>
@@ -351,7 +362,39 @@
         </div>
     </div>
 
+    <!-- Modal Usuarios -->
+    <div id="modal-usuarios" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-800">Gestionar Usuarios</h3>
+                <button onclick="cerrarModalUsuarios()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <!-- Lista de usuarios -->
+                <div id="usuarios-lista" class="space-y-2">
+                    <p class="text-gray-500 text-center">Cargando usuarios...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mapa de Movimiento -->
+    <div id="modal-mapa-movimiento" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-800">Ubicación del Movimiento</h3>
+                <button onclick="cerrarModalMapa()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <div id="info-movimiento" class="mb-4"></div>
+                <div id="mapa-movimiento"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="config.js"></script>
     <script src="app.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>

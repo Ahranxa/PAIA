@@ -1,6 +1,8 @@
 // Variables globales
 let productos = [];
 let categorias = [];
+let usuarioActual = null;
+let mapa = null;
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const usuario = localStorage.getItem('usuario');
 
     if (usuario) {
+        usuarioActual = JSON.parse(usuario);
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('app-header').classList.remove('hidden');
         document.getElementById('app-content').classList.remove('hidden');
@@ -17,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cargarEstadisticas();
         cargarAlertas();
         cargarCategorias();
+        
+        // Solicitar permiso de ubicación
+        solicitarPermisoUbicacion();
     }
 
     // Event listeners
@@ -313,10 +319,14 @@ function cerrarModalMovimiento() {
 async function registrarMovimiento(e) {
     e.preventDefault();
     
+    const ubicacion = obtenerUbicacionActual();
     const movimiento = {
         tipo: document.getElementById('movimiento-tipo').value,
         cantidad: parseInt(document.getElementById('movimiento-cantidad').value),
-        motivo: document.getElementById('movimiento-motivo').value
+        motivo: document.getElementById('movimiento-motivo').value,
+        latitud: ubicacion.latitud,
+        longitud: ubicacion.longitud,
+        usuario_id: usuarioActual ? usuarioActual.id : null
     };
     
     const productoId = document.getElementById('movimiento-producto-id').value;
@@ -360,6 +370,8 @@ async function verHistorial(id) {
         if (movimientos.length === 0) {
             historialLista.innerHTML = '<p class="text-gray-500">No hay movimientos registrados</p>';
         } else {
+            const esAdmin = usuarioActual && usuarioActual.rol === 'administrador';
+            
             historialLista.innerHTML = movimientos.map(m => `
                 <div class="p-4 ${m.tipo === 'entrada' ? 'bg-green-50 border-l-4 border-green-500' : 'bg-red-50 border-l-4 border-red-500'} rounded-lg">
                     <div class="flex justify-between items-start">
@@ -368,8 +380,15 @@ async function verHistorial(id) {
                                 ${m.tipo === 'entrada' ? 'ENTRADA' : 'SALIDA'}
                             </span>
                             <span class="text-gray-600 ml-2">${m.cantidad} unidades</span>
+                            ${m.usuarios ? `<span class="text-gray-500 ml-2">por ${m.usuarios.nombre}</span>` : ''}
                         </div>
-                        <span class="text-sm text-gray-500">${formatoFecha(m.fecha)}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-500">${formatoFecha(m.fecha)}</span>
+                            ${esAdmin && m.latitud && m.longitud ? `
+                                <button onclick='mostrarMapaMovimiento(${JSON.stringify(m)})' 
+                                        class="text-blue-600 hover:text-blue-800 text-lg" title="Ver ubicación">📍</button>
+                            ` : ''}
+                        </div>
                     </div>
                     <div class="mt-2 text-sm text-gray-600">
                         Stock: ${m.stock_anterior} → ${m.stock_nuevo}
@@ -433,6 +452,7 @@ async function iniciarSesion() {
             throw new Error(data.error);
         }
 
+        usuarioActual = data.usuario;
         localStorage.setItem('usuario', JSON.stringify(data.usuario));
 
         document.getElementById('login-screen').classList.add('hidden');
@@ -442,6 +462,10 @@ async function iniciarSesion() {
         cargarInventario();
         cargarEstadisticas();
         cargarAlertas();
+        cargarCategorias();
+        
+        // Solicitar permiso de ubicación
+        solicitarPermisoUbicacion();
 
         alert(`Bienvenido ${data.usuario.nombre}`);
 
@@ -654,5 +678,181 @@ async function eliminarCategoria(id) {
     } catch (error) {
         console.error('Error:', error);
         alert('Error al eliminar la categoría');
+    }
+}
+
+// ============ FUNCIONES DE GEOLOCALIZACIÓN ============
+
+// Solicitar permiso de ubicación
+function solicitarPermisoUbicacion() {
+    if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                console.log('Ubicación obtenida:', position.coords);
+                localStorage.setItem('ubicacion', JSON.stringify({
+                    latitud: position.coords.latitude,
+                    longitud: position.coords.longitude
+                }));
+            },
+            (error) => {
+                console.warn('No se pudo obtener la ubicación:', error);
+                alert('Para registrar movimientos con ubicación, necesitas permitir el acceso a tu ubicación');
+            }
+        );
+    } else {
+        console.warn('Geolocalización no soportada en este navegador');
+    }
+}
+
+// Obtener ubicación actual
+function obtenerUbicacionActual() {
+    const ubicacion = localStorage.getItem('ubicacion');
+    if (ubicacion) {
+        return JSON.parse(ubicacion);
+    }
+    return { latitud: null, longitud: null };
+}
+
+// ============ FUNCIONES DE GESTIÓN DE USUARIOS ============
+
+// Abrir modal de usuarios
+async function abrirModalUsuarios() {
+    // Solo administradores pueden gestionar usuarios
+    if (!usuarioActual || usuarioActual.rol !== 'administrador') {
+        alert('Solo los administradores pueden gestionar usuarios');
+        return;
+    }
+    
+    document.getElementById('modal-usuarios').classList.remove('hidden');
+    document.getElementById('modal-usuarios').classList.add('flex');
+    await cargarUsuarios();
+}
+
+// Cerrar modal de usuarios
+function cerrarModalUsuarios() {
+    document.getElementById('modal-usuarios').classList.add('hidden');
+    document.getElementById('modal-usuarios').classList.remove('flex');
+}
+
+// Cargar usuarios
+async function cargarUsuarios() {
+    try {
+        const response = await fetch(`${API_URL}/usuarios`);
+        const usuarios = await response.json();
+        renderizarUsuarios(usuarios);
+    } catch (error) {
+        console.error('Error al cargar usuarios:', error);
+        document.getElementById('usuarios-lista').innerHTML = '<p class="text-red-500 text-center">Error al cargar usuarios</p>';
+    }
+}
+
+// Renderizar lista de usuarios
+function renderizarUsuarios(usuarios) {
+    const lista = document.getElementById('usuarios-lista');
+    
+    if (usuarios.length === 0) {
+        lista.innerHTML = '<p class="text-gray-500 text-center">No hay usuarios registrados</p>';
+        return;
+    }
+    
+    lista.innerHTML = usuarios.map(usuario => `
+        <div class="flex justify-between items-center bg-white p-4 rounded-lg border border-gray-200">
+            <div>
+                <span class="font-medium text-gray-800">${usuario.nombre}</span>
+                <span class="text-gray-500 ml-2 text-sm">${usuario.email}</span>
+                <span class="ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                    usuario.rol === 'administrador' ? 'bg-red-100 text-red-800' :
+                    usuario.rol === 'editor' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                }">${usuario.rol}</span>
+            </div>
+            <div class="flex gap-2">
+                <select onchange="cambiarRolUsuario('${usuario.id}', this.value)" 
+                        class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                    <option value="usuario" ${usuario.rol === 'usuario' ? 'selected' : ''}>Usuario</option>
+                    <option value="editor" ${usuario.rol === 'editor' ? 'selected' : ''}>Editor</option>
+                    <option value="administrador" ${usuario.rol === 'administrador' ? 'selected' : ''}>Administrador</option>
+                </select>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Cambiar rol de usuario
+async function cambiarRolUsuario(id, nuevoRol) {
+    try {
+        const response = await fetch(`${API_URL}/usuarios/${id}/rol`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rol: nuevoRol })
+        });
+        
+        if (response.ok) {
+            await cargarUsuarios();
+            alert('Rol actualizado correctamente');
+        } else {
+            throw new Error('Error al actualizar rol');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar el rol');
+    }
+}
+
+// ============ FUNCIONES DE MAPA ============
+
+// Mostrar mapa de movimiento
+function mostrarMapaMovimiento(movimiento) {
+    // Solo administradores pueden ver ubicaciones
+    if (!usuarioActual || usuarioActual.rol !== 'administrador') {
+        alert('Solo los administradores pueden ver las ubicaciones de los movimientos');
+        return;
+    }
+    
+    if (!movimiento.latitud || !movimiento.longitud) {
+        alert('Este movimiento no tiene información de ubicación');
+        return;
+    }
+    
+    const infoDiv = document.getElementById('info-movimiento');
+    const usuarioInfo = movimiento.usuarios ? movimiento.usuarios.nombre : 'Usuario desconocido';
+    
+    infoDiv.innerHTML = `
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <p><strong>Usuario:</strong> ${usuarioInfo}</p>
+            <p><strong>Tipo:</strong> ${movimiento.tipo.toUpperCase()}</p>
+            <p><strong>Cantidad:</strong> ${movimiento.cantidad}</p>
+            <p><strong>Fecha:</strong> ${formatoFecha(movimiento.fecha)}</p>
+            <p><strong>Motivo:</strong> ${movimiento.motivo || 'N/A'}</p>
+        </div>
+    `;
+    
+    document.getElementById('modal-mapa-movimiento').classList.remove('hidden');
+    document.getElementById('modal-mapa-movimiento').classList.add('flex');
+    
+    // Inicializar mapa
+    if (mapa) {
+        mapa.remove();
+    }
+    
+    mapa = L.map('mapa-movimiento').setView([movimiento.latitud, movimiento.longitud], 15);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(mapa);
+    
+    L.marker([movimiento.latitud, movimiento.longitud])
+        .addTo(mapa)
+        .bindPopup(`<b>Movimiento ${movimiento.tipo}</b><br>Usuario: ${usuarioInfo}`)
+        .openPopup();
+}
+
+// Cerrar modal de mapa
+function cerrarModalMapa() {
+    document.getElementById('modal-mapa-movimiento').classList.add('hidden');
+    document.getElementById('modal-mapa-movimiento').classList.remove('flex');
+    if (mapa) {
+        mapa.remove();
+        mapa = null;
     }
 }

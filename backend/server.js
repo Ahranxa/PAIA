@@ -203,7 +203,7 @@ app.get('/api/inventario/buscar/:termino', async (req, res) => {
 // Registrar movimiento de inventario
 app.post('/api/inventario/:id/movimiento', async (req, res) => {
   try {
-    const { tipo, cantidad, motivo } = req.body;
+    const { tipo, cantidad, motivo, latitud, longitud, usuario_id } = req.body;
     const productoId = req.params.id;
     
     // Obtener producto actual
@@ -233,16 +233,19 @@ app.post('/api/inventario/:id/movimiento', async (req, res) => {
     
     if (errorUpdate) throw errorUpdate;
     
-    // Registrar movimiento
+    // Registrar movimiento con ubicación y usuario
     const { data: movimiento, error: errorMovimiento } = await supabase
       .from('movimientos')
       .insert([{
         producto_id: productoId,
+        usuario_id,
         tipo,
         cantidad,
         stock_anterior: producto.stock,
         stock_nuevo: nuevoStock,
-        motivo
+        motivo,
+        latitud,
+        longitud
       }])
       .select();
     
@@ -259,7 +262,7 @@ app.get('/api/inventario/:id/movimientos', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('movimientos')
-      .select('*')
+      .select('*, usuarios(nombre, email)')
       .eq('producto_id', req.params.id)
       .order('fecha', { ascending: false });
     
@@ -421,6 +424,41 @@ app.delete('/api/categorias/:id', async (req, res) => {
     
     if (error) throw error;
     res.json({ message: 'Categoría eliminada correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ ENDPOINTS DE GESTIÓN DE USUARIOS ============
+
+// Obtener todos los usuarios (solo administrador)
+app.get('/api/usuarios', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, nombre, email, rol, activo, fecha_creacion')
+      .order('nombre');
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Actualizar rol de usuario
+app.put('/api/usuarios/:id/rol', async (req, res) => {
+  try {
+    const { rol } = req.body;
+    
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ rol })
+      .eq('id', req.params.id)
+      .select();
+    
+    if (error) throw error;
+    res.json(data[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

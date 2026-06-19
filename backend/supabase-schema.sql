@@ -31,11 +31,14 @@ CREATE TABLE productos (
 CREATE TABLE movimientos (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   producto_id UUID REFERENCES productos(id) ON DELETE CASCADE,
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
   tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('entrada', 'salida')),
   cantidad INTEGER NOT NULL,
   stock_anterior INTEGER NOT NULL,
   stock_nuevo INTEGER NOT NULL,
   motivo TEXT,
+  latitud DECIMAL(10, 8),
+  longitud DECIMAL(11, 8),
   fecha TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -44,6 +47,7 @@ CREATE INDEX idx_productos_categoria ON productos(categoria);
 CREATE INDEX idx_productos_sku ON productos(sku);
 CREATE INDEX idx_movimientos_producto ON movimientos(producto_id);
 CREATE INDEX idx_movimientos_fecha ON movimientos(fecha);
+CREATE INDEX idx_movimientos_usuario ON movimientos(usuario_id);
 CREATE INDEX idx_categorias_nombre ON categorias(nombre);
 
 -- Habilitar Row Level Security (RLS)
@@ -99,7 +103,7 @@ CREATE TABLE usuarios (
   nombre VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  rol VARCHAR(50) DEFAULT 'usuario',
+  rol VARCHAR(50) DEFAULT 'usuario' CHECK (rol IN ('usuario', 'editor', 'administrador')),
   activo BOOLEAN DEFAULT TRUE,
   fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   fecha_actualizacion TIMESTAMP WITH TIME ZONE DEFAULT NOW()
