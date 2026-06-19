@@ -90,6 +90,11 @@ INSERT INTO categorias (nombre, descripcion) VALUES
 ('Almacenamiento', 'Dispositivos de almacenamiento de datos'),
 ('Otros', 'Categorías misceláneas');
 
+-- Crear usuario administrador inicial
+INSERT INTO usuarios (nombre, email, password, rol) 
+VALUES ('Administrador', 'aranxa.lopez@outlook.com', 'LinkNayru3@', 'administrador')
+ON CONFLICT (email) DO NOTHING;
+
 INSERT INTO productos (nombre, descripcion, categoria, stock, stock_minimo, precio_compra, precio_venta, proveedor, sku) VALUES
 ('Laptop HP Pavilion', 'Laptop 15.6" Intel i5, 8GB RAM, 256GB SSD', 'Electrónicos', 10, 5, 8500.00, 12000.00, 'HP México', 'LAP-HP-001'),
 ('Mouse Inalámbrico Logitech', 'Mouse ergonómico inalámbrico', 'Accesorios', 25, 10, 350.00, 550.00, 'Logitech', 'MOU-LOG-001'),
