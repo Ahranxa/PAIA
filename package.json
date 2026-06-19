@@ -2,12 +2,10 @@
   "name": "paia-inventory-app",
   "version": "1.0.0",
   "description": "Sistema de gestión de inventario con backend y frontend integrados",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "nodemon backend/server.js",
-    "install:backend": "cd backend && npm install",
-    "install:frontend": "cd frontend && npm install",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
     "build": "npm install"
   },
   "keywords": ["inventory", "supabase", "nodejs", "express"],
