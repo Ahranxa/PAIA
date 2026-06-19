@@ -7,8 +7,34 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+// Configurar CORS para permitir desarrollo local y producción en Render
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  process.env.FRONTEND_URL || '*'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // Permitir solicitudes sin origin (como mobile apps o curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
+
+// Servir archivos estáticos del frontend
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Supabase client
 const supabase = createClient(
@@ -313,6 +339,11 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Servir frontend para SPA (todas las rutas no-API van a index.html)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 app.listen(PORT, () => {
