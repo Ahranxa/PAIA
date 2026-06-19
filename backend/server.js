@@ -162,9 +162,9 @@ app.get('/api/inventario/estadisticas', async (req, res) => {
     if (error) throw error;
     
     const totalProductos = productos.length;
-    const valorTotalInventario = productos.reduce((sum, p) => sum + (p.stock * p.precio_compra), 0);
+    const valorTotalInventario = productos.reduce((sum, p) => sum + (p.stock * (p.precio_compra || 0)), 0);
     const productosBajoStock = productos.filter(p => p.stock < p.stock_minimo).length;
-    const valorVentaPotencial = productos.reduce((sum, p) => sum + (p.stock * p.precio_venta), 0);
+    const valorVentaPotencial = productos.reduce((sum, p) => sum + (p.stock * (p.precio_venta || 0)), 0);
     
     // Agrupar por categoría
     const porCategoria = productos.reduce((acc, p) => {

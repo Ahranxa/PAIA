@@ -31,6 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('busqueda').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') buscarProductos();
     });
+    
+    // Permitir inicio de sesión con Enter
+    document.getElementById('login-password').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') iniciarSesion();
+    });
 });
 
 // Mostrar fecha actual
