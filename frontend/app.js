@@ -484,3 +484,16 @@ async function registrarUsuario(nombre, email, password) {
         alert(error.message);
     }
 }
+
+// Cerrar sesión
+function cerrarSesion() {
+    localStorage.removeItem('usuario');
+    
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('app-header').classList.add('hidden');
+    document.getElementById('app-content').classList.add('hidden');
+    
+    // Limpiar campos de login
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-password').value = '';
+}
