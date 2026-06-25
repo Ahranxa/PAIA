@@ -145,9 +145,18 @@ app.get('/api/inventario/alertas/bajo-stock', async (req, res) => {
       .lt('stock', 'stock_minimo')
       .order('stock');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error en consulta de alertas:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      return res.json([]);
+    }
+    
     res.json(data);
   } catch (error) {
+    console.error('Error en alertas:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -159,7 +168,20 @@ app.get('/api/inventario/estadisticas', async (req, res) => {
       .from('productos')
       .select('*');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error en consulta de productos:', error);
+      throw error;
+    }
+    
+    if (!productos || productos.length === 0) {
+      return res.json({
+        totalProductos: 0,
+        valorTotalInventario: 0,
+        productosBajoStock: 0,
+        valorVentaPotencial: 0,
+        porCategoria: {}
+      });
+    }
     
     const totalProductos = productos.length;
     const valorTotalInventario = productos.reduce((sum, p) => sum + (p.stock * (p.precio_compra || 0)), 0);
@@ -180,6 +202,7 @@ app.get('/api/inventario/estadisticas', async (req, res) => {
       porCategoria
     });
   } catch (error) {
+    console.error('Error en estadísticas:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -266,9 +289,23 @@ app.get('/api/inventario/:id/movimientos', async (req, res) => {
       .eq('producto_id', req.params.id)
       .order('fecha', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error en consulta de movimientos:', error);
+      throw error;
+    }
+    
+    console.log('Movimientos encontrados:', data?.length || 0);
+    if (data && data.length > 0) {
+      console.log('Primer movimiento:', JSON.stringify(data[0], null, 2));
+    }
+    
+    if (!data) {
+      return res.json([]);
+    }
+    
     res.json(data);
   } catch (error) {
+    console.error('Error en movimientos:', error);
     res.status(500).json({ error: error.message });
   }
 });
