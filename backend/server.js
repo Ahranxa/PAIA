@@ -44,6 +44,9 @@ const supabase = createClient(
 
 // Health check
 app.get('/api/health', (req, res) => {
+  console.log('=== HEALTH CHECK ===');
+  console.log('Supabase URL:', process.env.SUPABASE_URL ? 'Configurada' : 'NO CONFIGURADA');
+  console.log('Supabase Key:', process.env.SUPABASE_ANON_KEY ? 'Configurada' : 'NO CONFIGURADA');
   res.json({ status: 'ok', message: 'Servidor funcionando correctamente' });
 });
 
