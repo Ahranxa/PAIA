@@ -142,7 +142,6 @@ app.get('/api/inventario/alertas/bajo-stock', async (req, res) => {
     const { data, error } = await supabase
       .from('productos')
       .select('*')
-      .lt('stock', 'stock_minimo')
       .order('stock');
     
     if (error) {
@@ -154,7 +153,10 @@ app.get('/api/inventario/alertas/bajo-stock', async (req, res) => {
       return res.json([]);
     }
     
-    res.json(data);
+    // Filtrar manualmente los productos con stock bajo
+    const productosBajoStock = data.filter(p => p.stock < p.stock_minimo);
+    
+    res.json(productosBajoStock);
   } catch (error) {
     console.error('Error en alertas:', error);
     res.status(500).json({ error: error.message });
