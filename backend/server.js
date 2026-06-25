@@ -65,6 +65,78 @@ app.get('/api/inventario', async (req, res) => {
   }
 });
 
+// Obtener estadísticas del inventario (debe ir antes de :id)
+app.get('/api/inventario/estadisticas', async (req, res) => {
+  try {
+    console.log('=== INICIO ESTADÍSTICAS ===');
+    console.log('Supabase URL:', process.env.SUPABASE_URL ? 'Configurada' : 'NO CONFIGURADA');
+    console.log('Supabase Key:', process.env.SUPABASE_ANON_KEY ? 'Configurada' : 'NO CONFIGURADA');
+    
+    const { data: productos, error } = await supabase
+      .from('productos')
+      .select('*');
+    
+    console.log('Error de consulta:', error);
+    console.log('Productos recibidos:', productos);
+    console.log('Cantidad de productos:', productos?.length || 0);
+    
+    if (error) {
+      console.error('Error en consulta de productos:', error);
+      return res.status(500).json({ error: error.message });
+    }
+    
+    // Si no hay productos o es null, retornar valores por defecto
+    if (!productos || productos.length === 0) {
+      console.log('No hay productos, retornando ceros');
+      return res.json({
+        totalProductos: 0,
+        valorTotalInventario: 0,
+        productosBajoStock: 0,
+        valorVentaPotencial: 0,
+        porCategoria: {}
+      });
+    }
+    
+    // Calcular estadísticas con manejo seguro de valores nulos
+    let totalProductos = 0;
+    let valorTotalInventario = 0;
+    let productosBajoStock = 0;
+    let valorVentaPotencial = 0;
+    const porCategoria = {};
+    
+    productos.forEach(p => {
+      totalProductos++;
+      const stock = p.stock || 0;
+      const stockMinimo = p.stock_minimo || 0;
+      const precioCompra = p.precio_compra || 0;
+      const precioVenta = p.precio_venta || 0;
+      const categoria = p.categoria || 'Sin categoría';
+      
+      valorTotalInventario += stock * precioCompra;
+      valorVentaPotencial += stock * precioVenta;
+      
+      if (stock < stockMinimo) {
+        productosBajoStock++;
+      }
+      
+      porCategoria[categoria] = (porCategoria[categoria] || 0) + 1;
+    });
+    
+    console.log('Estadísticas calculadas:', { totalProductos, valorTotalInventario, productosBajoStock, valorVentaPotencial, porCategoria });
+    
+    res.json({
+      totalProductos,
+      valorTotalInventario,
+      productosBajoStock,
+      valorVentaPotencial,
+      porCategoria
+    });
+  } catch (error) {
+    console.error('Error en estadísticas:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Obtener un producto por ID
 app.get('/api/inventario/:id', async (req, res) => {
   try {
@@ -162,78 +234,6 @@ app.get('/api/inventario/alertas/bajo-stock', async (req, res) => {
     res.json(productosBajoStock);
   } catch (error) {
     console.error('Error en alertas:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Obtener estadísticas del inventario
-app.get('/api/inventario/estadisticas', async (req, res) => {
-  try {
-    console.log('=== INICIO ESTADÍSTICAS ===');
-    console.log('Supabase URL:', process.env.SUPABASE_URL ? 'Configurada' : 'NO CONFIGURADA');
-    console.log('Supabase Key:', process.env.SUPABASE_ANON_KEY ? 'Configurada' : 'NO CONFIGURADA');
-    
-    const { data: productos, error } = await supabase
-      .from('productos')
-      .select('*');
-    
-    console.log('Error de consulta:', error);
-    console.log('Productos recibidos:', productos);
-    console.log('Cantidad de productos:', productos?.length || 0);
-    
-    if (error) {
-      console.error('Error en consulta de productos:', error);
-      return res.status(500).json({ error: error.message });
-    }
-    
-    // Si no hay productos o es null, retornar valores por defecto
-    if (!productos || productos.length === 0) {
-      console.log('No hay productos, retornando ceros');
-      return res.json({
-        totalProductos: 0,
-        valorTotalInventario: 0,
-        productosBajoStock: 0,
-        valorVentaPotencial: 0,
-        porCategoria: {}
-      });
-    }
-    
-    // Calcular estadísticas con manejo seguro de valores nulos
-    let totalProductos = 0;
-    let valorTotalInventario = 0;
-    let productosBajoStock = 0;
-    let valorVentaPotencial = 0;
-    const porCategoria = {};
-    
-    productos.forEach(p => {
-      totalProductos++;
-      const stock = p.stock || 0;
-      const stockMinimo = p.stock_minimo || 0;
-      const precioCompra = p.precio_compra || 0;
-      const precioVenta = p.precio_venta || 0;
-      const categoria = p.categoria || 'Sin categoría';
-      
-      valorTotalInventario += stock * precioCompra;
-      valorVentaPotencial += stock * precioVenta;
-      
-      if (stock < stockMinimo) {
-        productosBajoStock++;
-      }
-      
-      porCategoria[categoria] = (porCategoria[categoria] || 0) + 1;
-    });
-    
-    console.log('Estadísticas calculadas:', { totalProductos, valorTotalInventario, productosBajoStock, valorVentaPotencial, porCategoria });
-    
-    res.json({
-      totalProductos,
-      valorTotalInventario,
-      productosBajoStock,
-      valorVentaPotencial,
-      porCategoria
-    });
-  } catch (error) {
-    console.error('Error en estadísticas:', error);
     res.status(500).json({ error: error.message });
   }
 });
