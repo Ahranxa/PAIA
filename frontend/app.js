@@ -379,7 +379,11 @@ async function verHistorial(id) {
         } else {
             const esAdmin = usuarioActual && usuarioActual.rol === 'administrador';
             
-            historialLista.innerHTML = movimientos.map(m => `
+            historialLista.innerHTML = movimientos.map(m => {
+                const usuarioNombre = m.usuarios ? m.usuarios.nombre : 'Usuario desconocido';
+                console.log('Movimiento:', m, 'Usuario:', usuarioNombre);
+                
+                return `
                 <div class="p-4 ${m.tipo === 'entrada' ? 'bg-green-50 border-l-4 border-green-500' : 'bg-red-50 border-l-4 border-red-500'} rounded-lg">
                     <div class="flex justify-between items-start">
                         <div>
@@ -387,7 +391,7 @@ async function verHistorial(id) {
                                 ${m.tipo === 'entrada' ? 'ENTRADA' : 'SALIDA'}
                             </span>
                             <span class="text-gray-600 ml-2">${m.cantidad} unidades</span>
-                            ${m.usuarios ? `<span class="text-gray-500 ml-2">por ${m.usuarios.nombre}</span>` : ''}
+                            <span class="text-gray-500 ml-2">por ${usuarioNombre}</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-gray-500">${formatoFecha(m.fecha)}</span>
@@ -402,7 +406,7 @@ async function verHistorial(id) {
                     </div>
                     ${m.motivo ? `<div class="mt-1 text-sm text-gray-500">Motivo: ${m.motivo}</div>` : ''}
                 </div>
-            `).join('');
+            `}).join('');
         }
         
         document.getElementById('modal-historial').classList.remove('hidden');
