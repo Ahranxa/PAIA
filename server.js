@@ -172,9 +172,10 @@ app.get('/api/inventario/estadisticas', async (req, res) => {
     
     if (error) {
       console.error('Error en consulta de productos:', error);
-      throw error;
+      return res.status(500).json({ error: error.message });
     }
     
+    // Si no hay productos o es null, retornar valores por defecto
     if (!productos || productos.length === 0) {
       return res.json({
         totalProductos: 0,
@@ -185,16 +186,30 @@ app.get('/api/inventario/estadisticas', async (req, res) => {
       });
     }
     
-    const totalProductos = productos.length;
-    const valorTotalInventario = productos.reduce((sum, p) => sum + (p.stock * (p.precio_compra || 0)), 0);
-    const productosBajoStock = productos.filter(p => p.stock < p.stock_minimo).length;
-    const valorVentaPotencial = productos.reduce((sum, p) => sum + (p.stock * (p.precio_venta || 0)), 0);
+    // Calcular estadísticas con manejo seguro de valores nulos
+    let totalProductos = 0;
+    let valorTotalInventario = 0;
+    let productosBajoStock = 0;
+    let valorVentaPotencial = 0;
+    const porCategoria = {};
     
-    // Agrupar por categoría
-    const porCategoria = productos.reduce((acc, p) => {
-      acc[p.categoria] = (acc[p.categoria] || 0) + 1;
-      return acc;
-    }, {});
+    productos.forEach(p => {
+      totalProductos++;
+      const stock = p.stock || 0;
+      const stockMinimo = p.stock_minimo || 0;
+      const precioCompra = p.precio_compra || 0;
+      const precioVenta = p.precio_venta || 0;
+      const categoria = p.categoria || 'Sin categoría';
+      
+      valorTotalInventario += stock * precioCompra;
+      valorVentaPotencial += stock * precioVenta;
+      
+      if (stock < stockMinimo) {
+        productosBajoStock++;
+      }
+      
+      porCategoria[categoria] = (porCategoria[categoria] || 0) + 1;
+    });
     
     res.json({
       totalProductos,
