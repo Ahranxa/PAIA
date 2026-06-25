@@ -34,7 +34,7 @@ app.use(express.json());
 
 // Servir archivos estáticos del frontend
 const path = require('path');
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.join(__dirname, 'frontend')));
 
 // Supabase client
 const supabase = createClient(
@@ -166,9 +166,17 @@ app.get('/api/inventario/alertas/bajo-stock', async (req, res) => {
 // Obtener estadísticas del inventario
 app.get('/api/inventario/estadisticas', async (req, res) => {
   try {
+    console.log('=== INICIO ESTADÍSTICAS ===');
+    console.log('Supabase URL:', process.env.SUPABASE_URL ? 'Configurada' : 'NO CONFIGURADA');
+    console.log('Supabase Key:', process.env.SUPABASE_ANON_KEY ? 'Configurada' : 'NO CONFIGURADA');
+    
     const { data: productos, error } = await supabase
       .from('productos')
       .select('*');
+    
+    console.log('Error de consulta:', error);
+    console.log('Productos recibidos:', productos);
+    console.log('Cantidad de productos:', productos?.length || 0);
     
     if (error) {
       console.error('Error en consulta de productos:', error);
@@ -177,6 +185,7 @@ app.get('/api/inventario/estadisticas', async (req, res) => {
     
     // Si no hay productos o es null, retornar valores por defecto
     if (!productos || productos.length === 0) {
+      console.log('No hay productos, retornando ceros');
       return res.json({
         totalProductos: 0,
         valorTotalInventario: 0,
@@ -210,6 +219,8 @@ app.get('/api/inventario/estadisticas', async (req, res) => {
       
       porCategoria[categoria] = (porCategoria[categoria] || 0) + 1;
     });
+    
+    console.log('Estadísticas calculadas:', { totalProductos, valorTotalInventario, productosBajoStock, valorVentaPotencial, porCategoria });
     
     res.json({
       totalProductos,
@@ -306,9 +317,23 @@ app.get('/api/inventario/:id/movimientos', async (req, res) => {
       .eq('producto_id', req.params.id)
       .order('fecha', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error en consulta de movimientos:', error);
+      throw error;
+    }
+    
+    console.log('Movimientos encontrados:', data?.length || 0);
+    if (data && data.length > 0) {
+      console.log('Primer movimiento:', JSON.stringify(data[0], null, 2));
+    }
+    
+    if (!data) {
+      return res.json([]);
+    }
+    
     res.json(data);
   } catch (error) {
+    console.error('Error en movimientos:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -506,7 +531,7 @@ app.put('/api/usuarios/:id/rol', async (req, res) => {
 
 // Servir frontend para SPA (todas las rutas no-API van a index.html)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+  res.sendFile(path.join(__dirname, 'frontend/index.html'));
 });
 
 app.listen(PORT, () => {

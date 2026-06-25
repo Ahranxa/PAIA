@@ -166,9 +166,17 @@ app.get('/api/inventario/alertas/bajo-stock', async (req, res) => {
 // Obtener estadísticas del inventario
 app.get('/api/inventario/estadisticas', async (req, res) => {
   try {
+    console.log('=== INICIO ESTADÍSTICAS ===');
+    console.log('Supabase URL:', process.env.SUPABASE_URL ? 'Configurada' : 'NO CONFIGURADA');
+    console.log('Supabase Key:', process.env.SUPABASE_ANON_KEY ? 'Configurada' : 'NO CONFIGURADA');
+    
     const { data: productos, error } = await supabase
       .from('productos')
       .select('*');
+    
+    console.log('Error de consulta:', error);
+    console.log('Productos recibidos:', productos);
+    console.log('Cantidad de productos:', productos?.length || 0);
     
     if (error) {
       console.error('Error en consulta de productos:', error);
@@ -177,6 +185,7 @@ app.get('/api/inventario/estadisticas', async (req, res) => {
     
     // Si no hay productos o es null, retornar valores por defecto
     if (!productos || productos.length === 0) {
+      console.log('No hay productos, retornando ceros');
       return res.json({
         totalProductos: 0,
         valorTotalInventario: 0,
@@ -210,6 +219,8 @@ app.get('/api/inventario/estadisticas', async (req, res) => {
       
       porCategoria[categoria] = (porCategoria[categoria] || 0) + 1;
     });
+    
+    console.log('Estadísticas calculadas:', { totalProductos, valorTotalInventario, productosBajoStock, valorVentaPotencial, porCategoria });
     
     res.json({
       totalProductos,
