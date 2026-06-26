@@ -158,6 +158,6 @@ ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE roles_permisos ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de seguridad (permitir todo para desarrollo, ajustar en producción)
-CREATE POLICY IF NOT EXISTS "Permitir todo en permisos" ON permisos FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Permitir todo en roles" ON roles FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Permitir todo en roles_permisos" ON roles_permisos FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Permitir todo en permisos" ON permisos FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Permitir todo en roles" ON roles FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Permitir todo en roles_permisos" ON roles_permisos FOR ALL USING (true) WITH CHECK (true);
