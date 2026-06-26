@@ -2,6 +2,7 @@
 let productos = [];
 let categorias = [];
 let usuarioActual = null;
+let authToken = null;
 let mapa = null;
 
 // Inicialización
@@ -9,9 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     mostrarFechaActual();
 
     const usuario = localStorage.getItem('usuario');
+    const token = localStorage.getItem('authToken');
 
-    if (usuario) {
+    if (usuario && token) {
         usuarioActual = JSON.parse(usuario);
+        authToken = token;
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('app-header').classList.remove('hidden');
         document.getElementById('app-content').classList.remove('hidden');
@@ -38,7 +41,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Mostrar fecha actual
+// Helper para hacer fetch con autenticación
+async function authenticatedFetch(url, options = {}) {
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+    };
+    
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    return fetch(url, {
+        ...options,
+        headers
+    });
+}
+
+// Cerrar sesión
+function cerrarSesion() {
+    localStorage.removeItem('usuario');
+    localStorage.removeItem('authToken');
+    usuarioActual = null;
+    authToken = null;
+    
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('app-header').classList.add('hidden');
+    document.getElementById('app-content').classList.add('hidden');
+    
+    // Limpiar datos
+    productos = [];
+    categorias = [];
+}
 function mostrarFechaActual() {
     const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const fecha = new Date().toLocaleDateString('es-MX', opciones);
@@ -48,7 +82,7 @@ function mostrarFechaActual() {
 // Cargar inventario
 async function cargarInventario() {
     try {
-        const response = await fetch(`${API_URL}/inventario`);
+        const response = await authenticatedFetch(`${API_URL}/inventario`);
         productos = await response.json();
         renderizarTabla(productos);
         document.getElementById('loading').classList.add('hidden');
@@ -119,7 +153,7 @@ function formatoMoneda(valor) {
 // Cargar estadísticas
 async function cargarEstadisticas() {
     try {
-        const response = await fetch(`${API_URL}/inventario/estadisticas`);
+        const response = await authenticatedFetch(`${API_URL}/estadisticas`);
         const stats = await response.json();
         
         console.log('Estadísticas recibidas:', stats);
@@ -136,7 +170,7 @@ async function cargarEstadisticas() {
 // Cargar alertas
 async function cargarAlertas() {
     try {
-        const response = await fetch(`${API_URL}/inventario/alertas/bajo-stock`);
+        const response = await authenticatedFetch(`${API_URL}/inventario/alertas/bajo-stock`);
         const alertas = await response.json();
         
         const alertasSection = document.getElementById('alertas-section');
@@ -173,7 +207,7 @@ async function buscarProductos() {
     }
     
     try {
-        const response = await fetch(`${API_URL}/inventario/buscar/${encodeURIComponent(termino)}`);
+        const response = await authenticatedFetch(`${API_URL}/inventario/buscar/${encodeURIComponent(termino)}`);
         const resultados = await response.json();
         renderizarTabla(resultados);
     } catch (error) {
@@ -200,7 +234,7 @@ function abrirModalAgregar() {
 // Abrir modal editar
 async function abrirModalEditar(id) {
     try {
-        const response = await fetch(`${API_URL}/inventario/${id}`);
+        const response = await authenticatedFetch(`${API_URL}/inventario/${id}`);
         const producto = await response.json();
         
         actualizarSelectCategorias();
@@ -252,9 +286,8 @@ async function guardarProducto(e) {
         const url = id ? `${API_URL}/inventario/${id}` : `${API_URL}/inventario`;
         const method = id ? 'PUT' : 'POST';
         
-        const response = await fetch(url, {
+        const response = await authenticatedFetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(producto)
         });
         
@@ -278,7 +311,7 @@ async function eliminarProducto(id) {
     if (!confirm('¿Está seguro de eliminar este producto?')) return;
     
     try {
-        const response = await fetch(`${API_URL}/inventario/${id}`, {
+        const response = await authenticatedFetch(`${API_URL}/inventario/${id}`, {
             method: 'DELETE'
         });
         
@@ -299,7 +332,7 @@ async function eliminarProducto(id) {
 // Abrir modal movimiento
 async function abrirModalMovimiento(id) {
     try {
-        const response = await fetch(`${API_URL}/inventario/${id}`);
+        const response = await authenticatedFetch(`${API_URL}/inventario/${id}`);
         const producto = await response.json();
         
         document.getElementById('movimiento-producto-id').value = producto.id;
@@ -339,9 +372,8 @@ async function registrarMovimiento(e) {
     const productoId = document.getElementById('movimiento-producto-id').value;
     
     try {
-        const response = await fetch(`${API_URL}/inventario/${productoId}/movimiento`, {
+        const response = await authenticatedFetch(`${API_URL}/inventario/${productoId}/movimiento`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(movimiento)
         });
         
@@ -364,10 +396,10 @@ async function registrarMovimiento(e) {
 // Ver historial
 async function verHistorial(id) {
     try {
-        const response = await fetch(`${API_URL}/inventario/${id}`);
+        const response = await authenticatedFetch(`${API_URL}/inventario/${id}`);
         const producto = await response.json();
         
-        const movimientosResponse = await fetch(`${API_URL}/inventario/${id}/movimientos`);
+        const movimientosResponse = await authenticatedFetch(`${API_URL}/inventario/${id}/movimientos`);
         const movimientos = await movimientosResponse.json();
         
         document.getElementById('historial-nombre-producto').textContent = producto.nombre;
@@ -464,7 +496,10 @@ async function iniciarSesion() {
         }
 
         usuarioActual = data.usuario;
+        authToken = data.token;
+        
         localStorage.setItem('usuario', JSON.stringify(data.usuario));
+        localStorage.setItem('authToken', data.token);
 
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('app-header').classList.remove('hidden');
@@ -543,7 +578,7 @@ function cerrarSesion() {
 // Cargar categorías
 async function cargarCategorias() {
     try {
-        const response = await fetch(`${API_URL}/categorias`);
+        const response = await authenticatedFetch(`${API_URL}/categorias`);
         categorias = await response.json();
         actualizarSelectCategorias();
     } catch (error) {
@@ -622,9 +657,8 @@ async function agregarCategoria() {
     }
     
     try {
-        const response = await fetch(`${API_URL}/categorias`, {
+        const response = await authenticatedFetch(`${API_URL}/categorias`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre, descripcion })
         });
         
@@ -651,9 +685,8 @@ async function editarCategoria(id, nombreActual, descripcionActual) {
     const nuevaDescripcion = prompt('Nueva descripción:', descripcionActual);
     
     try {
-        const response = await fetch(`${API_URL}/categorias/${id}`, {
+        const response = await authenticatedFetch(`${API_URL}/categorias/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre: nuevoNombre, descripcion: nuevaDescripcion })
         });
         
@@ -675,7 +708,7 @@ async function eliminarCategoria(id) {
     if (!confirm('¿Está seguro de eliminar esta categoría?')) return;
     
     try {
-        const response = await fetch(`${API_URL}/categorias/${id}`, {
+        const response = await authenticatedFetch(`${API_URL}/categorias/${id}`, {
             method: 'DELETE'
         });
         
@@ -748,7 +781,7 @@ function cerrarModalUsuarios() {
 // Cargar usuarios
 async function cargarUsuarios() {
     try {
-        const response = await fetch(`${API_URL}/usuarios`);
+        const response = await authenticatedFetch(`${API_URL}/usuarios`);
         const usuarios = await response.json();
         renderizarUsuarios(usuarios);
     } catch (error) {
@@ -792,9 +825,8 @@ function renderizarUsuarios(usuarios) {
 // Cambiar rol de usuario
 async function cambiarRolUsuario(id, nuevoRol) {
     try {
-        const response = await fetch(`${API_URL}/usuarios/${id}/rol`, {
+        const response = await authenticatedFetch(`${API_URL}/usuarios/${id}/rol`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rol: nuevoRol })
         });
         
